@@ -80,8 +80,7 @@ server.on('message', (dnsPacket: Buffer, rinfo: { address: string; port: number;
     return;
   }
 
-  // Forward the request to Cloudflare DNS
-  // forwardRequest(dnsPacket, rinfo, domainName, type as RecordType, server);
+  // Forward the request to upstream DNS
   resolver.once('message', (response: Buffer) => {
     server.send(response, 0, response.length, rinfo.port, rinfo.address);
   });
