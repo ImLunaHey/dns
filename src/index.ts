@@ -1,9 +1,22 @@
 import 'dotenv/config';
 import dgram from 'dgram';
 import { decode } from 'dns-packet';
+import { Agent } from 'undici';
 import { Axiom } from '@axiomhq/js';
 import { checkRateLimit } from './rate-limiting';
 import { blockedDomains } from './blocked-domains';
+import { lookup } from 'fetch-dns-lookup';
+import { setGlobalDispatcher } from 'undici';
+
+setGlobalDispatcher(
+  new Agent({
+    connect: {
+      lookup: (hostname, options, callback) => {
+        return lookup(hostname, options, callback);
+      },
+    },
+  }),
+);
 
 const axiom = new Axiom({
   token: process.env.AXIOM_TOKEN!,
@@ -76,6 +89,23 @@ server.on('message', (dnsPacket: Buffer, rinfo: { address: string; port: number;
   resolver.send(dnsPacket, 0, dnsPacket.length, 53, '8.8.8.8');
 });
 
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Perform cleanup if necessary
+  // Exit or restart the service if required
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Perform cleanup if necessary
+  // Exit or restart the service if required
+});
+
 server.bind(53, () => {
   console.log('DNS server listening');
+});
+
+server.on('error', (err) => {
+  console.error(err);
+  server.close();
 });

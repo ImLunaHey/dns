@@ -1,6 +1,9 @@
 {
   "name": "dns",
   "module": "src/index.ts",
+  "scripts": {
+    "dev": "npx tsup src/index.ts && node dist/index.cjs"
+  },
   "type": "module",
   "devDependencies": {
     "@types/dns-packet": "^5.6.2",
@@ -13,6 +16,7 @@
   "dependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
     "dns-packet": "^5.6.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "fetch-dns-lookup": "^3.0.6"
   }
 }
