@@ -1,14 +1,17 @@
-const adAway = await fetch('https://adaway.org/hosts.txt').then(async (response) => {
-  const text = await response.text();
-  return text
-    .split('\n')
-    .map((line) => {
-      if (line.startsWith('#')) return null;
-      if (line.trim() === '') return null;
-      return line.split(' ')[1];
-    })
-    .filter(Boolean);
-});
+import '@total-typescript/ts-reset';
+
+const adAway = async () =>
+  fetch('https://adaway.org/hosts.txt').then(async (response) => {
+    const text = await response.text();
+    return text
+      .split('\n')
+      .map((line) => {
+        if (line.startsWith('#')) return null;
+        if (line.trim() === '') return null;
+        return line.split(' ')[1];
+      })
+      .filter(Boolean);
+  });
 
 export const blockedDomains = new Set([
   'ad.doubleclick.net',
@@ -250,5 +253,10 @@ export const blockedDomains = new Set([
   'itc.mzstatic.com',
   'metrics.mzstatic.com',
   'store.mzstatic.com',
-  ...adAway,
 ]);
+
+(async () => {
+  const adAwayDomains = await adAway();
+  console.info('Loaded %d domains from AdAway', adAwayDomains.length);
+  adAwayDomains.forEach((domain) => blockedDomains.add(domain));
+})();
