@@ -255,8 +255,8 @@ export const blockedDomains = new Set([
   'store.mzstatic.com',
 ]);
 
-(async () => {
+setTimeout(async () => {
   const adAwayDomains = await adAway();
   console.info('Loaded %d domains from AdAway', adAwayDomains.length);
   adAwayDomains.forEach((domain) => blockedDomains.add(domain));
-})();
+}, 5000);
