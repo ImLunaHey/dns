@@ -1,7 +1,7 @@
 import '@total-typescript/ts-reset';
 
-const adAway = async () =>
-  fetch('https://adaway.org/hosts.txt').then(async (response) => {
+const getList = async (url: string) =>
+  fetch(url).then(async (response) => {
     const text = await response.text();
     return text
       .split('\n')
@@ -255,8 +255,16 @@ export const blockedDomains = new Set([
   'store.mzstatic.com',
 ]);
 
+const lists = new Set(['https://adaway.org/hosts.txt']);
+
 setTimeout(async () => {
-  const adAwayDomains = await adAway();
-  console.info('Loaded %d domains from AdAway', adAwayDomains.length);
-  adAwayDomains.forEach((domain) => blockedDomains.add(domain));
+  for (const url of lists) {
+    try {
+      const domains = await getList(url);
+      console.info('Loaded %d domains from %s', domains.length);
+      domains.forEach((domain) => blockedDomains.add(domain));
+    } catch (error) {
+      console.error('Failed to load domains from %s', url);
+    }
+  }
 }, 5000);
