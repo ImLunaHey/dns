@@ -253,6 +253,23 @@ export const blockedDomains = new Set([
   'itc.mzstatic.com',
   'metrics.mzstatic.com',
   'store.mzstatic.com',
+  'adtago.s3.amazonaws.com',
+  'analyticsengine.s3.amazonaws.com',
+  'analytics.s3.amazonaws.com',
+  'advice-ads.s3.amazonaws.com',
+  'mouseflow.com',
+  'tools.mouseflow.com',
+  'cdn-test.mouseflow.com',
+  'events.hotjar.io',
+  'claritybt.freshmarketer.com',
+  'fwtracks.freshmarketer.com',
+  'api.bugsnag.com',
+  'browser.sentry-cdn.com',
+  'analytics.pointdrive.linkedin.com',
+  'widgets.pinterest.com',
+  'iot-eu-logser.realme.com',
+  'click.oneplus.cn',
+  'samsung-com.112.2o7.net'
 ]);
 
 const lists = new Set([
