@@ -277,10 +277,11 @@ export const blockedDomains = new Set([
 const lists = new Set(['https://adaway.org/hosts.txt']);
 
 setTimeout(async () => {
+  console.info('Loading blocked domains from %d lists', lists.size);
   for (const url of lists) {
     try {
       const domains = await getList(url);
-      console.info('Loaded %d domains from %s', domains.length);
+      console.info('Loaded %d domains from %s', domains.length, url);
       domains.forEach((domain) => blockedDomains.add(domain));
     } catch (error) {
       console.error('Failed to load domains from %s', url);

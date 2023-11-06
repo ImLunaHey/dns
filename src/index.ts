@@ -7,6 +7,13 @@ import { checkRateLimit } from './rate-limiting';
 import { blockedDomains } from './blocked-domains';
 import { lookup } from 'fetch-dns-lookup';
 import { setGlobalDispatcher } from 'undici';
+import { createClient } from '@libsql/client';
+
+// const turso = createClient({
+//   url: 'file:dbs/dns-ingest.db',
+//   syncUrl: 'libsql://dns-ingest-gay-fish.turso.io',
+//   authToken: process.env.TURSO_TOKEN!,
+// });
 
 setGlobalDispatcher(
   new Agent({
@@ -50,7 +57,7 @@ const blockRequest = (
   server.send(response, 0, response.length, rinfo.port, rinfo.address);
 };
 
-server.on('message', (dnsPacket: Buffer, rinfo: { address: string; port: number; family: string; size: number }) => {
+server.on('message', async (dnsPacket: Buffer, rinfo: { address: string; port: number; family: string; size: number }) => {
   // Rate limit check
   if (checkRateLimit(rinfo.address)) {
     console.warn(`Rate limit exceeded for ${rinfo.address}`);
@@ -74,6 +81,19 @@ server.on('message', (dnsPacket: Buffer, rinfo: { address: string; port: number;
   });
 
   console.info('Received message from %s for %s [%s]', rinfo.address, message.questions?.[0].name, type);
+
+  // // Check if the request is for a domain we want to block
+  // const isBlockedViaDB = await turso
+  //   .execute({
+  //     sql: 'SELECT EXISTS(SELECT 1 FROM test_table WHERE domain = ?)',
+  //     args: [domainName],
+  //   })
+  //   .then((result) => result.rows[0].blocked)
+  //   .catch((error) => {
+  //     console.error('Failed to check if domain is blocked via DB', error);
+  //     return false;
+  //   });
+  // console.log({ isBlockedViaDB });
 
   // Check if the request is for a domain we want to block
   if (blockedDomains.has(domainName)) {

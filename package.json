@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
+    "@libsql/client": "^0.3.6",
     "dns-packet": "^5.6.1",
     "dotenv": "^16.3.1",
     "fetch-dns-lookup": "^3.0.6"
