@@ -61,15 +61,17 @@ server.on('message', (dnsPacket: Buffer, rinfo: { address: string; port: number;
   const domainName = message.questions?.[0].name;
   const type = message.questions?.[0].type.replace('UNKNOWN_', 'TYPE');
 
-  axiom.ingest('dns', {
-    ip: rinfo.address,
-    message,
-  });
-
   // Check if the DNS request is valid
   if (!domainName || !type || domainName.startsWith('https://')) {
     return;
   }
+
+  // Log the request to Axiom
+  axiom.ingest('dns', {
+    ip: rinfo.address,
+    status: blockedDomains.has(domainName) ? 'blocked' : 'allowed',
+    message,
+  });
 
   console.info('Received message from %s for %s [%s]', rinfo.address, message.questions?.[0].name, type);
 
