@@ -8,6 +8,19 @@ import { blockedDomains } from './blocked-domains';
 import { lookup } from 'fetch-dns-lookup';
 import { setGlobalDispatcher } from 'undici';
 import { createClient } from '@libsql/client';
+import { readFileSync } from 'fs';
+import { IPv6 } from 'ip-num';
+
+const allowedIps = new Set<string>();
+
+setInterval(() => {
+  const ips = JSON.parse(readFileSync('allowed-ips.json', 'utf-8')) as string[];
+  ips.forEach((ip) => allowedIps.add(ip));
+}, 30_000);
+
+const isClientIpAllowed = (ip: string) => {
+  return allowedIps.has(ip);
+};
 
 // const turso = createClient({
 //   url: 'file:dbs/dns-ingest.db',
@@ -70,6 +83,12 @@ server.on('message', async (dnsPacket: Buffer, rinfo: { address: string; port: n
 
   // Check if the DNS request is valid
   if (!domainName || !type || domainName.startsWith('https://')) {
+    return;
+  }
+
+  // Check if the client IP is allowed
+  if (!isClientIpAllowed(rinfo.address)) {
+    console.warn(`Client IP ${rinfo.address} is not allowed`);
     return;
   }
 
