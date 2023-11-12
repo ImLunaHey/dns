@@ -47,25 +47,18 @@ setInterval(async () => {
     try {
       const domains = await getList(url);
       console.info('Loaded %d domains from %s', domains.length, url);
-      for (const domain of domains) {
-        // Check if the domain is already in the database
-        const exists = await turso
-          .execute({
-            sql: 'SELECT EXISTS(SELECT 1 FROM blocked_domains WHERE hostname = ?)',
-            args: [domain],
-          })
-          .then((result) => Object.values(result.rows[0])[0] === 1)
-          .catch((error) => {
-            console.error('Failed to check if domain exists in DB', error);
-            return false;
-          });
-        if (exists) continue;
-        await turso.execute({
-          sql: 'INSERT INTO blocked_domains (id, hostname) VALUES (?, ?)',
-          args: [randomUUID(), domain],
-        });
+      const queries = domains.map((domain) => ({
+        // Check if the domain already exists, if not insert it
+        sql: 'INSERT INTO blocked_domains (id, hostname)',
+        args: [randomUUID(), domain],
+      }));
+
+      // In batches of 500 queries
+      for (let i = 0; i < queries.length; i += 500) {
+        await turso.batch(queries.slice(i, i + 500), 'write');
       }
     } catch (error) {
+      console.error(error);
       console.error('Failed to load domains from %s', url);
     }
   }
