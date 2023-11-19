@@ -1,5 +1,5 @@
 import dgram from 'dgram';
-import { onMessage } from './events/message';
+import { onMessage } from './message-event';
 
 export const server = dgram.createSocket('udp4');
 

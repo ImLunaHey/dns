@@ -1,6 +1,7 @@
 import '@total-typescript/ts-reset';
-import { turso } from './turso';
 import { randomUUID } from 'crypto';
+import { database } from './database';
+import { readFileSync } from 'fs';
 
 const getList = async (url: string) =>
   fetch(url).then(async (response) => {
@@ -17,49 +18,68 @@ const getList = async (url: string) =>
       .filter(Boolean);
   });
 
-setInterval(async () => {
-  const lists = await turso
-    .execute({
-      sql: 'SELECT url, last_updated FROM remote_lists',
-      args: [],
-    })
-    .then((result) => result.rows as unknown as { url: string; last_updated: number }[]);
-
-  console.info('Checking %d lists for updates', lists.length);
-  for (const { url, last_updated } of lists) {
-    // Only update once per day
-    if (Date.now() - last_updated < 1000 * 60 * 60 * 24) {
-      console.info(
-        'Skipping %s, last updated %d days ago',
-        url,
-        Math.floor((Date.now() - last_updated) / 1000 / 60 / 60 / 24),
-      );
-      continue;
-    }
-
-    // Update last updated time
-    await turso.execute({
-      sql: 'UPDATE remote_lists SET last_updated = ? WHERE url = ?',
-      args: [Date.now(), url],
+const updateLists = () =>
+  setTimeout(async () => {
+    const lists = await database.execute('SELECT url, last_updated FROM remote_lists').then((results) => {
+      return (
+        results.rows as {
+          url: string;
+          last_updated: number;
+        }[]
+      ).map((row) => {
+        return {
+          url: row.url,
+          last_updated: row.last_updated * 1000,
+        };
+      });
     });
 
-    // Update the list
-    try {
-      const domains = await getList(url);
-      console.info('Loaded %d domains from %s', domains.length, url);
-      const queries = domains.map((domain) => ({
-        // Check if the domain already exists, if not insert it
-        sql: 'INSERT INTO blocked_domains (id, hostname)',
-        args: [randomUUID(), domain],
-      }));
-
-      // In batches of 500 queries
-      for (let i = 0; i < queries.length; i += 500) {
-        await turso.batch(queries.slice(i, i + 500), 'write');
+    console.info('Checking %d lists for updates', lists.length);
+    for (const { url, last_updated } of lists) {
+      // Only update once per day
+      if (Date.now() - last_updated < 1000 * 60 * 60 * 24) {
+        console.info(
+          'Skipping %s, last updated %d days ago',
+          url,
+          Math.floor((Date.now() - last_updated) / 1000 / 60 / 60 / 24),
+        );
+        continue;
       }
-    } catch (error) {
-      console.error(error);
-      console.error('Failed to load domains from %s', url);
+
+      // Update last updated time
+      await database.execute('UPDATE remote_lists SET last_updated = ? WHERE url = ?', [Date.now() / 1000, url]);
+
+      // Update the list
+      try {
+        const domains = await getList(url);
+        console.info('Loaded %d domains from %s', domains.length, url);
+
+        // Update the database
+        // Chunks for 20 domains at a time
+        for (let count = 0; count < domains.length; count += 1000) {
+          if (count % 1000 === 0) console.info('Updated %d/%d domains from %s', count, domains.length, url);
+          const chunk = domains.slice(count, count + 1000);
+          await database.execute(
+            `INSERT IGNORE INTO blocked_domains (id, hostname) VALUES ${chunk.map(() => '(?, ?)').join(', ')}`,
+            chunk.flatMap((domain) => [randomUUID(), domain]),
+          );
+        }
+
+        console.log('Updated %d domains from %s', domains.length, url);
+      } catch (error) {
+        console.error(error);
+        console.error('Failed to load domains from %s', url);
+      }
     }
-  }
-}, 5_000);
+    updateLists();
+  }, 5_000);
+
+// Run the migrations
+for (const migration of readFileSync('./src/migrations.sql', 'utf-8').split(';').filter(Boolean)) {
+  const migrationName = migration.split('\n').filter(Boolean)[0].replace('--', '').trim();
+  console.info('Running migration "%s"', migrationName);
+  await database.execute(migration);
+}
+
+// Udate the lists every 5s
+updateLists();

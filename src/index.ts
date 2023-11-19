@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import './blocked-domains';
 import { server } from './server';
 
 process.on('uncaughtException', (error) => {
