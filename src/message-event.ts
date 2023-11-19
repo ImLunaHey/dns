@@ -124,7 +124,7 @@ export const onMessage = async (
   // Forward the request to upstream DNS
   resolver.once('message', (response: Buffer) => {
     // Cache the response
-    const ttl = (decode(response).answers?.[0] as BufferAnswer).ttl ?? 60;
+    const ttl = (decode(response).answers?.[0] as BufferAnswer)?.ttl ?? 60;
     cachedQueries.add(hostname, response, ttl * 1000);
     server.send(response, 0, response.length, rinfo.port, rinfo.address);
   });
