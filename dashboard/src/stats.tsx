@@ -2,7 +2,7 @@ import { axiom } from './axiom';
 import { createCache } from './cache';
 import { database } from './database';
 
-const REFRESH_INTERVAL = 1000 * 60 * 5; // 5 minutes
+const REFRESH_INTERVAL = 1000 * 10; // 10 seconds
 
 const getTotalAllowedCount = createCache(async () => {
   const result = await axiom.query('dns | where status == "allowed" | count');
