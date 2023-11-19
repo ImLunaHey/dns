@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { axiom } from './axiom';
 import { createCache } from './cache';
 import { database } from './database';
@@ -19,7 +20,7 @@ const getTotalDeviceCount = createCache(async () => {
   return (result.rows[0] as { count: number }).count;
 }, REFRESH_INTERVAL);
 
-export const Stats = async () => {
+const InnerStats = async () => {
   const totalDeviceCount = await getTotalDeviceCount();
   const totalAllowedCount = await getTotalAllowedCount();
   const totalBlockedCount = await getTotalBlockedCount();
@@ -36,5 +37,24 @@ export const Stats = async () => {
         <div className="text-sm p-1 text-white mb-2 w-fit">IP: 45.77.183.140</div>
       </div>
     </div>
+  );
+};
+
+const Fallback = () => {
+  return (
+    <div className="text-center justify-center items-center flex flex-col h-full w-full absolute top-0 left-0 z-10 pointer-events-none">
+      <div className="w-[250px] bg-black border p-2">
+        {/* Loading */}
+        <div className="text-sm p-1 text-white mb-2 w-fit">Loading...</div>
+      </div>
+    </div>
+  );
+};
+
+export const Stats = () => {
+  return (
+    <Suspense fallback={<Fallback />}>
+      <InnerStats />
+    </Suspense>
   );
 };
