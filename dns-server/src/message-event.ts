@@ -33,6 +33,8 @@ const blockedDomains = new CachedSet<string>(1000);
 const allowedDomains = new CachedSet<string>(1000);
 const cachedQueries = new TTLMap<string, Buffer>();
 
+const cache = process.env.CACHE === 'true';
+
 export const onMessage = async (
   dnsPacket: Buffer,
   rinfo: { address: string; port: number; family: string; size: number },
@@ -98,34 +100,37 @@ export const onMessage = async (
     return;
   }
 
-  // Check if the request is cached
-  if (cachedQueries.has(hostname)) {
-    console.info('Found cached query for %s', hostname);
-    const response = cachedQueries.get(hostname)!;
-    server.send(
-      encode({
-        ...decode(response.value),
-        id: message.id,
-        answers: (decode(response.value).answers ?? []).map((answer) => {
-          return {
-            ...answer,
-            ttl: Math.floor((response.delete_at - Date.now()) / 1000),
-          };
+  const cacheKey = hostname + message.questions?.[0].type;
+  if (cache) {
+    // Check if the request is cached
+    if (cachedQueries.has(cacheKey)) {
+      console.info('Found cached query for %s', cacheKey);
+      const response = cachedQueries.get(cacheKey)!;
+      server.send(
+        encode({
+          ...decode(response.value),
+          id: message.id,
+          answers: (decode(response.value).answers ?? []).map((answer) => {
+            return {
+              ...answer,
+              ttl: Math.floor((response.delete_at - Date.now()) / 1000),
+            };
+          }),
         }),
-      }),
-      0,
-      response.value.length,
-      rinfo.port,
-      rinfo.address,
-    );
-    return;
+        0,
+        response.value.length,
+        rinfo.port,
+        rinfo.address,
+      );
+      return;
+    }
   }
 
   // Forward the request to upstream DNS
   resolver.once('message', (response: Buffer) => {
     // Cache the response
     const ttl = (decode(response).answers?.[0] as BufferAnswer)?.ttl ?? 60;
-    cachedQueries.add(hostname, response, ttl * 1000);
+    if (cache) cachedQueries.add(cacheKey, response, ttl * 1000);
     server.send(response, 0, response.length, rinfo.port, rinfo.address);
   });
 

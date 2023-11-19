@@ -7,11 +7,15 @@ const config = {
 };
 
 const db = connect(config);
+const execute =
+  process.env.ENV === 'production'
+    ? db.execute
+    : async (query: string, params: any[]) => {
+        console.log('Executing query: %s', query);
+        return db['execute'](query, params);
+      };
 
 export const database = {
   ...db,
-  execute: async (query: string, params: any[]) => {
-    console.log('Executing query: %s', query);
-    return db['execute'](query, params);
-  },
+  execute,
 };

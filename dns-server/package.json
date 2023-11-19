@@ -2,7 +2,9 @@
   "name": "dns",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "npx tsup src/index.ts && node dist/index.cjs"
+    "build": "npx tsup src/index.ts",
+    "start": "node dist/index.cjs",
+    "dev": "npm run build && npm run start"
   },
   "type": "module",
   "devDependencies": {
