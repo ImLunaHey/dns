@@ -4,13 +4,13 @@ import { lookup } from 'fetch-dns-lookup';
 import { setGlobalDispatcher } from 'undici';
 import { BufferAnswer, decode, encode } from 'dns-packet';
 import { checkRateLimit } from './rate-limiting';
-import { Axiom } from '@axiomhq/js';
 import { isClientIpAllowed } from './allowed-ips';
 import { blockRequest } from './block-request';
 import { server } from './server';
 import { database } from './database';
 import { CachedSet } from './cached-set';
 import { TTLMap } from './ttl-map';
+import { axiom } from './axiom';
 
 // Cache DNS lookups for fetch requests
 setGlobalDispatcher(
@@ -24,10 +24,6 @@ setGlobalDispatcher(
 );
 
 const resolver = dgram.createSocket('udp4');
-
-const axiom = new Axiom({
-  token: process.env.AXIOM_TOKEN!,
-});
 
 const blockedDomains = new CachedSet<string>(1000);
 const allowedDomains = new CachedSet<string>(1000);
